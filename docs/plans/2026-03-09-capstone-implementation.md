@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Build an ELT data pipeline for NZ electricity generation data (CSVs to GCS to BigQuery via Kestra and dbt).
+**Goal:** Build an ELT data pipeline for NZ electricity generation data (CSVs to GCS to BigQuery via Airflow and dbt).
 
 **Architecture:** Terraform provisions GCS and BigQuery. An Airflow DAG handles batch downloading of CSVs and uploading them to GCS. BigQuery external tables read from GCS. dbt-core handles the transformations inside BigQuery. GitHub Actions handles CI/CD checks (linting, dbt compile).
 
