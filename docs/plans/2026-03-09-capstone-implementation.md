@@ -4,9 +4,9 @@
 
 **Goal:** Build an ELT data pipeline for NZ electricity generation data (CSVs to GCS to BigQuery via Kestra and dbt).
 
-**Architecture:** Terraform provisions GCS and BigQuery. A Kestra flow handles batch downloading of CSVs and uploading them to GCS. BigQuery external tables read from GCS. dbt-core handles the transformations inside BigQuery.
+**Architecture:** Terraform provisions GCS and BigQuery. An Airflow DAG handles batch downloading of CSVs and uploading them to GCS. BigQuery external tables read from GCS. dbt-core handles the transformations inside BigQuery. GitHub Actions handles CI/CD checks (linting, dbt compile).
 
-**Tech Stack:** Kestra, Python, Google Cloud Storage (GCS), BigQuery, dbt Core, Terraform.
+**Tech Stack:** Apache Airflow, Python, Google Cloud Storage (GCS), BigQuery, dbt Core, Terraform, GitHub Actions.
 
 ---
 
@@ -28,33 +28,33 @@ git add terraform/
 git commit -m "chore: setup gcp terraform resources"
 ```
 
-### Task 2: Kestra Flow for Ingestion
+### Task 2: Airflow DAG for Ingestion
 **Files:**
-- Create: `kestra/flows/ingest_generation_data.yml`
+- Create: `airflow/dags/ingest_generation_data.py`
 
-**Step 1: Write Kestra Yaml**
-Write a flow that uses a `io.kestra.plugin.scripts.python.Script` task to download https://www.emi.ea.govt.nz/Wholesale/Datasets/Generation/Generation_MD/YYYYMM_Generation_MD.csv for recent backfill months, and uploads to GCS using `io.kestra.plugin.gcp.gcs.Upload`.
+**Step 1: Write Airflow DAG**
+Write a DAG that uses PythonOperator to download https://www.emi.ea.govt.nz/Wholesale/Datasets/Generation/Generation_MD/YYYYMM_Generation_MD.csv for recent backfill months, and uploads to GCS using LocalFilesystemToGCSOperator or GCSHook.
 
-**Step 2: Validate Flow**
-Run: (Wait for user to start Kestra locally and load flow)
-Expected: Flow loads successfully or passes lint.
+**Step 2: Validate DAG**
+Run: `python airflow/dags/ingest_generation_data.py` to check for syntax/import errors.
+Expected: DAG loads successfully without errors.
 
 **Step 3: Commit**
 ```bash
-git add kestra/
-git commit -m "feat: add kestra ingestion flow"
+git add airflow/
+git commit -m "feat: add airflow ingestion DAG"
 ```
 
-### Task 3: Kestra Flow for BigQuery External Table
+### Task 3: Airflow DAG for BigQuery External Table
 **Files:**
-- Modify: `kestra/flows/ingest_generation_data.yml:add-bq-task`
+- Modify: `airflow/dags/ingest_generation_data.py`
 
 **Step 1: Add BigQuery Task**
-Add an `io.kestra.plugin.gcp.bigquery.Query` task to create/replace an external table pointing to the GCS bucket `raw/generation_md/*.csv`.
+Add a `BigQueryInsertJobOperator` task to the existing DAG to create/replace an external table pointing to the GCS bucket `raw/generation_md/*.csv`.
 
 **Step 2: Commit**
 ```bash
-git add kestra/flows/ingest_generation_data.yml
+git add airflow/dags/ingest_generation_data.py
 git commit -m "feat: add bigquery external table integration"
 ```
 
@@ -93,4 +93,17 @@ Expected: PASS
 ```bash
 git add dbt/models/core/
 git commit -m "feat: add dbt core models"
+```
+
+### Task 6: CI/CD Pipeline Setup
+**Files:**
+- Create: `.github/workflows/ci_cd_pipeline.yml`
+
+**Step 1: Write GitHub Actions Workflow**
+Create a workflow yaml file that runs on pull request/push to main. Add steps to checkout code, setup Python, install Black, SQLFluff and dbt-bigquery, run Python linting (`black --check airflow/`), run SQL linting, and run dbt checks (`dbt compile`).
+
+**Step 2: Commit**
+```bash
+git add .github/
+git commit -m "ci: add github actions for linting and dbt compile"
 ```

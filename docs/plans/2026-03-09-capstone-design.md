@@ -14,12 +14,18 @@ The project will follow a classic Batch ELT (Extract, Load, Transform) data lake
   - BigQuery Dataset (Data Warehouse)
 
 ## Orchestration (Ingestion & Execution)
-- **Tool**: Kestra
+- **Tool**: Apache Airflow
 - **Workflow**:
-  1. A Python-based Kestra task downloads monthly CSV files from the EMI website.
-  2. The files are uploaded to the GCS bucket (`/raw/generation_md/`).
-  3. Kestra triggers BigQuery to create/update an External Table pointing to the GCS CSVs.
-  4. Kestra triggers the dbt transformation jobs.
+  1. An Airflow DAG with Python operators downloads monthly CSV files from the EMI website.
+  2. The files are uploaded to the GCS bucket (`/raw/generation_md/`) via Airflow GCS Operators.
+  3. Airflow triggers BigQuery to create/update an External Table pointing to the GCS CSVs.
+  4. Airflow triggers the dbt transformation jobs.
+
+## CI/CD & Engineering Standards
+- **Tool**: GitHub Actions (or similar CI server)
+- **Workflow**:
+  - Automatically run code formatting (Black) and SQL linting (SQLFluff).
+  - Run `dbt compile` and `dbt test` on PRs to validate changes before deploying.
 
 ## Data Transformation
 - **Tool**: dbt Core
